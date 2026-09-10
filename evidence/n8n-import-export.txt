@@ -1,0 +1,6 @@
+n8n version: 2.38.6
+Importing 1 workflows...
+Successfully imported 1 workflow.
+Successfully exported 1 workflow.
+Review renderer executed in Node.js; HTML escaping check passed.
+Import/export validation is not a live form or model execution.

@@ -1,0 +1,30 @@
+services:
+  policy-api:
+    build: .
+    env_file: .env
+    ports:
+      - "127.0.0.1:8010:8000"
+    volumes:
+      - policy_data:/app/data
+    restart: unless-stopped
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:2.38.6
+    ports:
+      - "127.0.0.1:5678:5678"
+    environment:
+      N8N_HOST: localhost
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      N8N_SECURE_COOKIE: "false"
+      GENERIC_TIMEZONE: America/Chicago
+      TZ: America/Chicago
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_PERSONALIZATION_ENABLED: "false"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      - policy-api
+    restart: unless-stopped
+volumes:
+  n8n_data:
+  policy_data:

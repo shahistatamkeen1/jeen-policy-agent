@@ -1,0 +1,309 @@
+{
+  "updatedAt": "2026-09-10T18:23:02.739Z",
+  "createdAt": "2026-09-10T18:23:02.739Z",
+  "id": "CedarPolicyDemo01",
+  "name": "Cedarbridge - Policy Review Agent",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "2fd90ce4-202e-40d2-8b76-122a46ae1b9f",
+      "name": "Request a policy review",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "formTitle": "Cedarbridge Bank | Policy Review Assistant",
+        "formDescription": "Fictional bank and synthetic policies. Ask a policy question, inspect the cited evidence, then decide whether to create a review case.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Request ID",
+              "placeholder": "DEMO-001",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Policy question",
+              "fieldType": "textarea",
+              "requiredField": true,
+              "placeholder": "May a team upload customer statements to a public AI chatbot for summarization?"
+            }
+          ]
+        },
+        "options": {
+          "buttonLabel": "Retrieve policy evidence"
+        }
+      },
+      "webhookId": "c22719a5-3f4d-4ab0-bfb1-f93aa1e7e186"
+    },
+    {
+      "id": "93dd7262-9d1c-4d31-bdfc-bf1e2bf642f1",
+      "name": "Retrieve policy sections",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://policy-api:8000/retrieve",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ request_id: $json[\"Request ID\"], question: $json[\"Policy question\"] }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      }
+    },
+    {
+      "id": "40555ff4-cfdf-46ab-8676-1c769b43c39b",
+      "name": "LLM evidence and routing decision",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        520,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://policy-api:8000/propose",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ retrieval_id: $json.retrieval_id }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      }
+    },
+    {
+      "id": "87f97f23-1700-4745-b822-256923972dfa",
+      "name": "Prepare cited review",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        780,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const esc = s => String(s ?? '').replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]));\nconst p = $input.first().json;\nconst evidence = p.citations.map(c => `<p><b>[${esc(c.id)}] ${esc(c.title)} / ${esc(c.section)} (${esc(c.version)})</b><br>${esc(c.text)}</p>`).join('');\nconst summary = `<p><b>Request:</b> ${esc(p.question)}</p><p><b>Evidence status:</b> ${esc(p.status)}<br><b>Proposed queue:</b> ${esc(p.queue || 'None')}</p>` + (evidence || `<p>${esc(p.answer)}</p>`) + `<p><b>Approval scope:</b> ${esc(p.action_scope)}</p><p>Check relevance and completeness of the evidence. Reject when it does not answer the question. This local demo records a self-declared reviewer name.</p>`;\nreturn [{json:{...p, review_html:summary}}];\n"
+      }
+    },
+    {
+      "id": "a5b04850-3319-4319-b0c5-fd8750dfe67e",
+      "name": "Human approval",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.3,
+      "position": [
+        780,
+        270
+      ],
+      "parameters": {
+        "operation": "page",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Decision",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Reject"
+                  },
+                  {
+                    "option": "Approve"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Reviewer",
+              "placeholder": "Demo Reviewer",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Review reason",
+              "fieldType": "textarea",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "formTitle": "Review the policy evidence",
+          "formDescription": "={{ $json.review_html }}",
+          "buttonLabel": "Record my decision"
+        }
+      },
+      "webhookId": "e0d9055a-5731-4a77-90b8-96a5b33f02d3"
+    },
+    {
+      "id": "72ced9fc-4aa7-4c18-9cc2-27222c5ce253",
+      "name": "Record decision and create case",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        520,
+        270
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://policy-api:8000/decisions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ proposal_id: $(\"Prepare cited review\").first().json.proposal_id, decision: $json.Decision, reviewer: $json.Reviewer, reason: $json[\"Review reason\"] }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      }
+    },
+    {
+      "id": "92625c25-8a18-4bb4-8bdb-fa94c9c2241b",
+      "name": "Show case result",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.3,
+      "position": [
+        260,
+        270
+      ],
+      "parameters": {
+        "operation": "completion",
+        "respondWith": "text",
+        "completionTitle": "Policy review recorded",
+        "completionMessage": "={{ \"Result: \" + $json.state + ($json.case ? \" | Case: \" + $json.case.case_id + \" | Queue: \" + $json.case.queue : \" | No case created\") + \". Approval creates a review case only; it does not grant a policy exception.\" }}",
+        "options": {}
+      },
+      "webhookId": "365fcac5-9b95-4b70-b332-bb7d54361b0d"
+    },
+    {
+      "id": "2553bce0-f2d0-4817-8cba-cc52b3280dbb",
+      "name": "Read before demonstrating",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -260
+      ],
+      "parameters": {
+        "content": "## Cedarbridge Bank - governed policy review\nSynthetic documents | BM25 RAG | LLM evidence selection | human approval | durable case\n\nChoose the same Header Auth credential in all 3 HTTP nodes: X-Demo-Token = your DEMO_API_TOKEN.\nDocker hostname: policy-api. Local Python fallback: host.docker.internal.\nInspect documents and read docs/START_HERE.md. Live LLM and form evidence must be captured on your machine.",
+        "height": 210,
+        "width": 1070
+      }
+    }
+  ],
+  "connections": {
+    "Request a policy review": {
+      "main": [
+        [
+          {
+            "node": "Retrieve policy sections",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retrieve policy sections": {
+      "main": [
+        [
+          {
+            "node": "LLM evidence and routing decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM evidence and routing decision": {
+      "main": [
+        [
+          {
+            "node": "Prepare cited review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare cited review": {
+      "main": [
+        [
+          {
+            "node": "Human approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Human approval": {
+      "main": [
+        [
+          {
+            "node": "Record decision and create case",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record decision and create case": {
+      "main": [
+        [
+          {
+            "node": "Show case result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "nodeGroups": [],
+  "pinData": {},
+  "versionId": "48df9168-6fd9-4ca9-8bb6-352c6b682706",
+  "activeVersionId": null,
+  "versionCounter": 1,
+  "triggerCount": 0,
+  "sourceWorkflowId": null,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-09-10T18:23:02.747Z",
+      "createdAt": "2026-09-10T18:23:02.747Z",
+      "role": "workflow:owner",
+      "workflowId": "CedarPolicyDemo01",
+      "projectId": "OTePZkC9cHr05iB9",
+      "project": {
+        "updatedAt": "2026-09-10T18:22:09.330Z",
+        "createdAt": "2026-09-10T18:22:09.330Z",
+        "id": "OTePZkC9cHr05iB9",
+        "name": "Unnamed Project",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "customTelemetryTags": [],
+        "creatorId": "a368cbc9-3d1c-4de5-b1bb-2983e150faf1"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

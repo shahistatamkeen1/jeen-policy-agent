@@ -1,49 +1,81 @@
 # Cedarbridge Bank — Governed AI Policy Review Agent
 
-A production-oriented proof of concept for a governed enterprise AI workflow that retrieves policy evidence, uses an LLM to make evidence-grounded routing recommendations, presents citations to a human reviewer, and creates a durable review case only after explicit approval.
+A governed enterprise AI proof of concept that combines **RAG, LLM-powered decision support, policy citations, human-in-the-loop review, and controlled action execution**.
 
-> **Note:** Cedarbridge Bank and all included policy documents are fictional and synthetic. No real customer or confidential banking data is used.
+The agent retrieves relevant internal policy evidence, determines whether the evidence is sufficient, recommends the appropriate review queue, presents the exact supporting citations to a human reviewer, and creates a durable review case only after explicit approval.
+
+> **Note:** Cedarbridge Bank and all policy documents in this repository are fictional and synthetic. No real customer, banking, or confidential data is used.
 
 ---
 
-## Overview
+## Assessment Summary
 
-Enterprise AI systems should not make consequential decisions solely because an LLM generated a plausible answer.
+This project was built as an **AI Solution Engineer working demo** focused on a financial-services policy-review use case.
 
-This project demonstrates a safer pattern:
+The core design principle is:
 
-**Retrieve → Ground → Recommend → Review → Validate → Act**
+> **Retrieve → Ground → Recommend → Review → Validate → Act**
 
-A user submits a policy question. The system retrieves relevant policy sections, asks an LLM to determine whether the evidence is sufficient, proposes the appropriate review queue, and presents the supporting citations to a human reviewer.
+The LLM is used for evidence selection and routing recommendation, but it is **not treated as an autonomous authority**.
 
-A durable review case is created only when:
+A case can be created only when:
 
-1. relevant policy evidence exists,
-2. the LLM recommendation is grounded in that evidence, and
-3. a human explicitly approves the action.
+1. relevant policy evidence is available,
+2. the LLM recommendation is grounded in that evidence,
+3. the recommendation passes server-side validation, and
+4. a human explicitly approves the action.
 
-If evidence is insufficient, downstream case creation is blocked even when approval is attempted.
+If evidence is insufficient, the workflow abstains and prevents downstream case creation.
+
+---
+
+## Customer Context & Business Problem
+
+**Customer:** Cedarbridge Bank, a fictional financial-services organization.
+
+Operations teams regularly need to answer internal questions related to:
+
+- AI usage
+- customer-data handling
+- vendor onboarding
+- vendor assurance
+- procurement routing
+
+A manual process can require employees to search multiple policy documents, identify the correct section, determine which review team owns the request, and manually create a case.
+
+This creates several risks:
+
+- slow policy interpretation,
+- inconsistent routing,
+- unsupported answers,
+- missing evidence,
+- incorrect escalation,
+- and over-reliance on AI-generated responses.
+
+The goal of this solution is to accelerate policy triage while keeping the final action **grounded, reviewable, and human-controlled**.
 
 ---
 
 ## Key Capabilities
 
-- Policy retrieval using BM25-based search
-- Evidence-grounded LLM reasoning
-- Policy citations with document and section metadata
-- Structured routing recommendations
-- Explicit `supported` / `insufficient` evidence states
-- Human-in-the-loop approval
-- Durable case creation only after validation
-- Rejection path with no downstream action
-- Insufficient-evidence safety guardrail
+- **Retrieval-Augmented Generation (RAG)** using BM25 retrieval
+- Evidence-grounded LLM decision making
+- Exact policy citations with document and section metadata
+- Structured review-queue recommendations
+- Explicit `supported` and `insufficient` evidence states
+- Human-in-the-loop approval and rejection
+- Durable case creation only after approval and validation
+- Server-side guardrails
 - Prompt-injection resistance testing
-- Fabricated-policy / citation resistance
-- Auditable workflow execution
+- Fabricated-citation rejection
+- Duplicate/replay protection
+- Policy-change validation
+- Proposal-expiry handling
+- Persistent audit records
 - Dockerized local environment
 - n8n workflow orchestration
-- Automated application tests
-- Live LLM evaluation
+- Automated application testing
+- Live-model evaluation
 
 ---
 
@@ -52,31 +84,32 @@ If evidence is insufficient, downstream case creation is blocked even when appro
 ```text
                        ┌─────────────────────┐
                        │   Policy Question   │
-                       │     n8n Form        │
+                       │      n8n Form       │
                        └──────────┬──────────┘
                                   │
                                   ▼
                        ┌─────────────────────┐
-                       │   Retrieve Policy   │
-                       │      Sections       │
-                       │      BM25 RAG       │
+                       │  Retrieve Relevant  │
+                       │  Policy Sections    │
+                       │     BM25 RAG        │
                        └──────────┬──────────┘
                                   │
                                   ▼
                        ┌─────────────────────┐
                        │    LLM Evidence     │
-                       │  + Routing Decision │
+                       │ + Routing Decision  │
                        └──────────┬──────────┘
                                   │
                                   ▼
                        ┌─────────────────────┐
-                       │ Prepare Cited Review│
+                       │ Validate & Prepare  │
+                       │    Cited Review     │
                        └──────────┬──────────┘
                                   │
                                   ▼
                        ┌─────────────────────┐
                        │    Human Review     │
-                       │ Approve / Reject    │
+                       │  Approve / Reject   │
                        └──────────┬──────────┘
                                   │
                                   ▼
@@ -89,7 +122,7 @@ If evidence is insufficient, downstream case creation is blocked even when appro
                    │                             │
                    ▼                             ▼
           ┌─────────────────┐           ┌─────────────────┐
-          │   Create Case   │           │ Closed / No     │
-          │ Supported +     │           │ Action          │
+          │   Create Case   │           │  Close With     │
+          │ Supported +     │           │   No Action     │
           │ Approved Only   │           │                 │
           └─────────────────┘           └─────────────────┘

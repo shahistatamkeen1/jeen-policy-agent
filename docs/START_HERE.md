@@ -1,6 +1,6 @@
 # Start here: build, run, understand, demonstrate
 
-The assignment is a 4–5 hour working-demo exercise. Keep the scope to one workflow. This package gives you the implementation and presenter materials; you must still run it with a real provider key and capture genuine run evidence on your computer.
+This repository contains the completed working demo for the Jeen AI Solution Engineer home assignment. The implementation has been tested with a live provider, executed end-to-end in n8n, and validated through automated and live-model evaluations. This guide explains how to reproduce, understand, and demonstrate the solution locally.
 
 Your stated target is **September 16**. The email screenshot shows an interview on **September 23, 10–11 AM**, with no visible timezone. An interview date is not necessarily the submission deadline. Keep September 16 as your working deadline unless the recruiter confirms otherwise.
 
@@ -66,7 +66,7 @@ docker compose up --build -d
 docker compose ps
 ```
 
-The first build can take several minutes while Docker downloads images. Both services should show as running. Open `http://localhost:8000/health` in your browser. Expected fields:
+The first build can take several minutes while Docker downloads images. Both services should show as running. Open `http://localhost:8010/health` in your browser. Expected fields:
 
 ```json
 {"status":"ok","llm_configured":true,"chunks":8,"mode":"live_provider_only"}
@@ -126,8 +126,8 @@ Check the created case from PowerShell. Read the token from your own local file 
 ```powershell
 $demoToken = (Get-Content .env | Where-Object { $_ -match '^DEMO_API_TOKEN=' }) -replace '^DEMO_API_TOKEN=', ''
 $demoHeaders = @{ 'X-Demo-Token' = $demoToken }
-Invoke-RestMethod -Uri 'http://localhost:8000/cases' -Headers $demoHeaders | ConvertTo-Json -Depth 12
-Invoke-RestMethod -Uri 'http://localhost:8000/audit' -Headers $demoHeaders | ConvertTo-Json -Depth 12
+Invoke-RestMethod -Uri 'http://localhost:8010/cases' -Headers $demoHeaders | ConvertTo-Json -Depth 12
+Invoke-RestMethod -Uri 'http://localhost:8010/audit' -Headers $demoHeaders | ConvertTo-Json -Depth 12
 ```
 
 You should see the case, evidence, queue, reviewer and decision record. This is the workflow's real action: an HTTP tool writes a durable case. It is not a mock email or a chat response.
@@ -159,13 +159,34 @@ docker compose cp policy-api:/app/evidence/live-evaluation.json ./evidence/live-
 
 The live suite makes approximately ten provider calls. It uses a temporary database and creates no review cases. Inspect each result manually; a passing queue/citation check alone does not prove every answer is sufficient. If a live check fails, examine its retrieved evidence and decision before changing prompts. Do not replace a failed result with a fixture.
 
-## 11. Capture the required screenshots
+## 11. Review the captured evidence
 
-Use the real running workflow and your actual results, with credentials closed:
+The repository includes genuine screenshots from the tested workflow:
 
-1. `evidence/01-full-workflow.png`: zoom to fit the entire n8n canvas; node names must be readable.
-2. `evidence/02-human-review.png`: show the policy question, relevant cited evidence, proposed queue, and approval controls.
-3. `evidence/03-successful-case.png`: show the completion screen with the real case ID.
+1. `evidence/01_workflow_architecture.png`  
+   Full n8n workflow and successful execution.
+
+2. `evidence/02_supported_approved_case_created.png`  
+   Supported request approved by the reviewer with a durable case created.
+
+3. `evidence/03_supported_rejected_no_case.png`  
+   Supported recommendation rejected by the reviewer with no case creation.
+
+4. `evidence/04_insufficient_approval_blocked.png`  
+   Insufficient-evidence request safely blocked even when approval was attempted.
+
+5. `evidence/05_live_evaluation_10_of_10.png`  
+   Live-provider evaluation showing 10/10 checks passed.
+
+6. `evidence/06_cited_policy_evidence.png`  
+   Human-review screen showing the source policy citation and proposed queue.
+
+7. `evidence/07_retrieval_candidate_chunks_insufficient.png`  
+   Candidate retrieval example demonstrating why retrieval similarity alone is not sufficient evidence.
+
+Detailed live-model results are stored in:
+
+`evidence/live-evaluation.json`
 
 A short recording can substitute for screenshots under the assignment instructions. A recording of the happy path plus abstention is a useful backup. Do not submit illustrated screens or fixture results as a live LLM run.
 
@@ -181,7 +202,7 @@ Follow `SUBMISSION_CHECKLIST.md`. Do not push `.env`, the local database, person
 |---|---|
 | Docker command not recognized | Install/start Docker Desktop and reopen the terminal. |
 | Docker engine unavailable | Start Docker Desktop; check WSL2 setup and any required reboot. |
-| Port 5678 or 8000 already in use | Stop the conflicting local app, or edit only the host-side port in compose.yaml and use the new browser URL. |
+| Port 5678 or 8010 already in use | Stop the conflicting local app, or edit only the host-side port in compose.yaml and use the new browser URL. |
 | HTTP node says credential missing | Select the Header Auth credential in all three HTTP nodes. |
 | HTTP 401 from policy API | Header must be X-Demo-Token and must exactly match `.env`. |
 | Host policy-api cannot be found | Run both services with this Compose file; keep the service hostname in node URLs. |

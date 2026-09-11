@@ -1,80 +1,40 @@
-# Verification Status
+# Test results
 
-Prepared and finalized on September 10, 2026.
+## Application tests
 
-## Verified
+**27/27 passed**, recorded September 11, 2026. Full output: [automated-tests.txt](automated-tests.txt).
 
-- Source policies load as eight unique section-level chunks.
-- Automated application tests pass successfully.
-- Raw automated test output is stored in `automated-tests.txt`.
-- Positive retrieval examples correctly rank the expected policy sections.
-- Unit and integration tests cover:
-  - BM25 retrieval
-  - persistence
-  - approval and rejection
-  - insufficient evidence
-  - invalid citations
-  - queue mismatch
-  - duplicate and concurrent approvals
-  - proposal expiry
-  - policy changes
-  - missing API configuration
-  - authentication
-  - audit records
-- Workflow JSON is structurally connected and contains no pinned execution data or embedded secrets.
-- n8n successfully imported, executed, and re-exported the workflow.
-- The JavaScript review renderer executes correctly and escapes HTML.
-- HTTP integration tests verify authentication and request-to-case behavior.
-- The full request → retrieval → LLM decision → human review → durable action workflow was executed successfully in n8n.
-- Supported request + human approval successfully created a persisted review case.
-- Supported request + human rejection created no case.
-- Insufficient evidence + approval attempt was safely blocked with `closed_no_action`.
-- The live LLM evaluation completed successfully with **10/10 checks passed**.
-- The live evaluation created **0 review cases**.
-- Prompt-injection and fabricated-policy test cases were safely rejected as insufficient.
-- Final workflow and execution screenshots were captured from the genuine running system.
-- The workflow was re-exported after successful testing.
-- The five-slide presentation was prepared for the solution walkthrough.
+The suite uses fixed model responses to test BM25 retrieval, output validation, source citations, approval and rejection, insufficient-evidence blocking, persistence, proposal expiry, audit records and HTTP authentication. It also covers repeated and concurrent approvals.
 
-## Evidence
+Two regression tests cover Windows source files: unchanged CRLF policies allow approval, while an actual file edit after retrieval blocks it. Approval checks the same document directory used for ingestion.
 
-The `evidence/` directory contains:
+## Live model evaluation
 
-- `01_workflow_architecture.png`
-- `02_supported_approved_case_created.png`
-- `03_supported_rejected_no_case.png`
-- `04_insufficient_approval_blocked.png`
-- `05_live_evaluation_10_of_10.png`
-- `06_cited_policy_evidence.png`
-- `07_retrieval_candidate_chunks_insufficient.png`
-- `automated-tests.txt`
-- `live-evaluation.json`
-- `n8n-import-export.txt`
+**10/10 passed**, recorded September 10, 2026. Provider: OpenAI. Recorded model: `gpt-5.6-sol`. Full results: [live-evaluation.json](live-evaluation.json).
 
-## Important Scope Notes
+| Supported question | Selected section | Queue |
+|---|---|---|
+| Customer statements in a public AI chatbot | AI-01 | SecurityReview |
+| New vendor missing a SOC 2 report | VR-01 | VendorRisk |
+| Existing vendor renewal quotation | VR-03 | Procurement |
+| Public marketing material in an approved internal AI tool | AI-02 | AIEnablement |
 
-The automated application tests use labeled model fixtures for deterministic validation. They are separate from the live-model evaluation.
+The selected excerpts match the source policies and address these four questions. The remaining six cases return insufficient evidence, covering missing retention periods, thresholds, country approvals, a turnaround guarantee, malicious instructions and a fabricated policy reference.
 
-Live-provider behavior was independently validated using the configured OpenAI provider and is recorded in `live-evaluation.json`.
+The runner checks expected status, queue and citation IDs. It uses a temporary database and does not call the case-creation endpoint. These results predate the September 11 hashing correction; they are not a new provider run against that revision. Ten cases provide useful examples, but are too few to estimate general accuracy or resistance to prompt injection.
 
-This project is a working assessment proof of concept and does not claim production compliance or zero hallucinations.
+## Workflow runs
 
-The human reviewer remains the authority for the review decision, while server-side validation prevents unsupported requests from creating downstream cases.
+| Scenario | Result | Screenshot |
+|---|---|---|
+| Supported evidence, human approval | Case created in SecurityReview | [Approved](02_supported_approved_case_created.png) |
+| Supported evidence, human rejection | No case created | [Rejected](03_supported_rejected_no_case.png) |
+| Insufficient evidence, approval attempted | `closed_no_action`; no case created | [Blocked](04_insufficient_approval_blocked.png) |
 
-Creating a review case does not grant a policy exception or authorize the underlying requested activity.
+Additional captures: [workflow canvas](01_workflow_architecture.png), [cited review form](06_cited_policy_evidence.png), [retrieval candidates](07_retrieval_candidate_chunks_insufficient.png), and [live evaluation summary](05_live_evaluation_10_of_10.png).
 
-## Final Status
+## Open verification items
 
-**Assessment implementation: complete**
+The portable workflow passed the import/export check recorded in [n8n-import-export.txt](n8n-import-export.txt). An export from the configured demonstration instance still needs to be checked. A fresh approval run on Windows is also pending after the file-hashing correction.
 
-**Automated tests: passed**
-
-**Live LLM evaluation: 10/10 passed**
-
-**n8n end-to-end workflow: verified**
-
-**Required screenshots: captured**
-
-**Workflow export: finalized**
-
-**Ready for submission**
+The existing canvas screenshot predates the documentation cleanup and contains an old setup-note reference. A new capture should accompany the configured workflow export. Other run screenshots remain records of the earlier executions.

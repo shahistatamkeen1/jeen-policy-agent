@@ -37,8 +37,10 @@ def tokens(s):
 def load_documents(folder):
     chunks = []
     for path in sorted(Path(folder).glob('*.md')):
-        raw = path.read_text(encoding='utf-8')
-        digest = hashlib.sha256(raw.encode()).hexdigest()
+        source_bytes = path.read_bytes()
+        # Parse normalized text, but hash the same on-disk bytes checked at approval.
+        raw = source_bytes.decode('utf-8').replace('\r\n', '\n').replace('\r', '\n')
+        digest = hashlib.sha256(source_bytes).hexdigest()
         title = raw.splitlines()[0].removeprefix('# ')
         version = re.search(r'^Version: ([^|\n]+)', raw, re.M).group(1).strip()
         parts = re.split(r'^## (.+)$', raw, flags=re.M)
@@ -73,7 +75,8 @@ class Agent:
     def __init__(self, database=None, documents=None, model_call=None):
         self.database = str(database or os.getenv('DB_PATH', ROOT/'data'/'cases.db'))
         Path(self.database).parent.mkdir(parents=True, exist_ok=True)
-        self.chunks = load_documents(documents or ROOT/'documents')
+        self.documents = Path(documents or ROOT/'documents')
+        self.chunks = load_documents(self.documents)
         self.model_call = model_call or self.call_llm
         with self.connect() as db:
             db.executescript('''
@@ -110,7 +113,7 @@ class Agent:
     def call_llm(self, question, evidence):
         key = os.getenv('OPENAI_API_KEY', '').strip()
         if not key: raise DemoError(503, 'OPENAI_API_KEY is not configured. No simulated LLM result was substituted.')
-        payload = {'model':os.getenv('OPENAI_MODEL', 'gpt-4o-mini'),
+        payload = {'model':os.getenv('OPENAI_MODEL', 'gpt-5.6-sol'),
                    'response_format':{'type':'json_object'},
                    'messages':[{'role':'system','content':PROMPT},
                                {'role':'user','content':json.dumps({'request':question,'retrieved_evidence':evidence})}]}
@@ -193,7 +196,7 @@ class Agent:
             if time.time()-data['created_at'] > 3600: raise DemoError(409,'Proposal expired; start a new request')
             # Recheck the document hashes at the moment of approval.
             for c in data['citations']:
-                path = ROOT/'documents'/c['file']
+                path = self.documents/c['file']
                 if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != c['sha256']:
                     raise DemoError(409,'Policy changed since retrieval. Restart the service and submit a new request.')
             case = None

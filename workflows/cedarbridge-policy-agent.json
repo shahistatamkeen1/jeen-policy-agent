@@ -195,7 +195,7 @@
         -260
       ],
       "parameters": {
-        "content": "## Cedarbridge Bank - governed policy review\nSynthetic documents | BM25 RAG | LLM evidence selection | human approval | durable case\n\nChoose the same Header Auth credential in all 3 HTTP nodes: X-Demo-Token = your DEMO_API_TOKEN.\nDocker hostname: policy-api. Local Python fallback: host.docker.internal.\nInspect documents and read docs/START_HERE.md. Live LLM and form evidence must be captured on your machine.",
+        "content": "## Cedarbridge Bank — Policy review\n\nRetrieve policy sections, select supporting evidence and route a review case after human approval.\n\nThree synthetic policies • BM25 retrieval • Cited excerpts • SQLite case storage\n\nAPI: http://policy-api:8000\nAuthentication: shared Header Auth credential using X-Demo-Token.\nSetup and example requests: README.md.",
         "height": 210,
         "width": 1070
       }

@@ -62,6 +62,21 @@ class AgentTests(unittest.TestCase):
   with patch.dict(os.environ,{'OPENAI_API_KEY':''}):
    with self.assertRaises(DemoError) as c:Agent(self.db).call_llm('question',[])
   self.assertEqual(c.exception.status,503)
+ def crlf_agent(self):
+  folder=Path(self.temp.name)/'documents';folder.mkdir()
+  for source in (ROOT/'documents').glob('*.md'):
+   (folder/source.name).write_bytes(source.read_text(encoding='utf-8').replace('\n','\r\n').encode('utf-8'))
+  self.agent=Agent(self.db,documents=folder,model_call=self.agent.model_call)
+  return folder
+ def test_unchanged_windows_crlf_policy_allows_approval(self):
+  self.crlf_agent();p=self.proposal()
+  self.assertEqual(p['citations'][0]['text'],next(c['text'] for c in Agent(self.db).chunks if c['id']=='AI-01'))
+  self.assertEqual(self.agent.decide(self.decision(p))['state'],'case_created')
+ def test_actual_windows_policy_edit_blocks_approval(self):
+  folder=self.crlf_agent();p=self.proposal();source=folder/p['citations'][0]['file']
+  source.write_bytes(source.read_bytes()+b'\r\nPolicy updated after retrieval.\r\n')
+  with self.assertRaises(DemoError) as error:self.agent.decide(self.decision(p))
+  self.assertEqual(error.exception.status,409);self.assertEqual(self.agent.listing('cases'),[])
  def test_blank_inputs(self):
   with self.assertRaises(DemoError):self.agent.search({'request_id':'x','question':' '})
  def test_audit_records_human_and_action(self):

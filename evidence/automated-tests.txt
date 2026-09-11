@@ -1,3 +1,4 @@
+test_actual_windows_policy_edit_blocks_approval (test_agent.AgentTests.test_actual_windows_policy_edit_blocks_approval) ... ok
 test_approve_persists_case_across_restart (test_agent.AgentTests.test_approve_persists_case_across_restart) ... ok
 test_audit_records_human_and_action (test_agent.AgentTests.test_audit_records_human_and_action) ... ok
 test_blank_inputs (test_agent.AgentTests.test_blank_inputs) ... ok
@@ -16,6 +17,7 @@ test_queue_mismatch_rejected (test_agent.AgentTests.test_queue_mismatch_rejected
 test_reject_creates_no_case (test_agent.AgentTests.test_reject_creates_no_case) ... ok
 test_reject_then_approve_cannot_reopen (test_agent.AgentTests.test_reject_then_approve_cannot_reopen) ... ok
 test_replay_does_not_duplicate_case (test_agent.AgentTests.test_replay_does_not_duplicate_case) ... ok
+test_unchanged_windows_crlf_policy_allows_approval (test_agent.AgentTests.test_unchanged_windows_crlf_policy_allows_approval) ... ok
 test_unknown_proposal_rejected (test_agent.AgentTests.test_unknown_proposal_rejected) ... ok
 test_vendor_retrieval (test_agent.AgentTests.test_vendor_retrieval) ... ok
 test_workflow_graph_is_connected (test_agent.AgentTests.test_workflow_graph_is_connected) ... ok
@@ -25,6 +27,6 @@ test_invalid_request_does_not_create_case (test_http.HTTPTests.test_invalid_requ
 test_unauthorized_request_is_rejected (test_http.HTTPTests.test_unauthorized_request_is_rejected) ... ok
 
 ----------------------------------------------------------------------
-Ran 25 tests in 2.102s
+Ran 27 tests in 2.096s
 
 OK
